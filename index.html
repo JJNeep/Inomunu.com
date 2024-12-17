@@ -1,21 +1,296 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title>Inomunu - Home</title>
-        <style>
-            header {
-                background-color: #666;
-                padding-top: 80;
-                text-align: center;
-                font-size: 35;
-                color: #dadada;
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inomunu</title>
+    <!--put ico named favicon in images folder-->
+    <link rel="icon" type="image/x-icon" href="./images/favicon.ico">
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        /* Sticky Top Menu Bar */
+        .top-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #333;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .top-menu .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .top-menu .logo {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .top-menu .logo-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .top-menu .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .top-menu .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .top-menu .nav-links a:hover {
+            color: #ddd;
+        }
+
+        /* Profile Dropdown */
+        .profile-container {
+            position: relative;
+        }
+
+        .profile-button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: white;
+        }
+
+        .profile-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-width: 200px;
+            z-index: 1100;
+            margin-top: 10px;
+        }
+
+        .dropdown-menu.active {
+            display: block;
+        }
+
+        .dropdown-menu::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            right: 10px;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid white;
+        }
+
+        .dropdown-menu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            color: #333;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .dropdown-menu a:hover {
+            background-color: #f4f4f4;
+        }
+
+        .dropdown-menu .icon {
+            width: 20px;
+            height: 20px;
+            color: #666;
+        }
+
+        /* Content Area */
+        .content {
+            margin-top: 80px; /* Adjust based on menu height */
+            padding: 20px;
+        }
+
+        .content-section {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .content-image {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Bottom Links Section */
+        .bottom-links {
+            background-color: #f4f4f4;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .bottom-links .link-group {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .bottom-links a {
+            color: #333;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .bottom-links a:hover {
+            color: #666;
+        }
+
+        .bottom-links .copyright {
+            color: #777;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sticky Top Menu Bar -->
+    <div class="top-menu">
+        <div class="logo-container">
+            <img src="./images/logo.svg" alt="Logo" class="logo-image">
+            <div class="logo">Inomunu</div>
+        </div>
+        <nav class="nav-links">
+            <a href="./index.html">Home</a>
+            <a href="./about.html">About Us</a>
+            <a href="./services.html">Services</a>
+            <a href="./contact.html">Contact</a>
+        </nav>
+        <div class="profile-container">
+            <button class="profile-button" id="profileToggle">
+                <img src="/api/placeholder/40/40" alt="Profile" class="profile-image">
+                <span>JJNeep</span>
+            </button>
+            <div class="dropdown-menu" id="profileDropdown">
+                <a href="./account/profile.html">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="icon">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Profile
+                </a>
+                <a href="./account/settings.html">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="icon">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Settings
+                </a>
+                <a href="#logout">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="icon">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Log Out
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content">
+        <div class="content-section">
+            <h1>Welcome to Inomunu</h1>
+            <p>This is a sample content area demonstrating a sticky top menu bar. As you scroll, the menu will remain fixed at the top of the page.</p>
+            
+            <img src="/api/placeholder/600/400" alt="Sample Image" class="content-image">
+            
+            <h2>About Our Content</h2>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse malesuada neque sed eros interdum, placerat ullamcorper purus pretium. Curabitur vulputate neque et interdum fermentum. Etiam dictum, nisl gravida volutpat euismod, orci dolor accumsan sapien, vel bibendum nunc lacus quis sapien. Nunc nec hendrerit purus, at facilisis lorem. Nullam ac lectus finibus nisi gravida consequat. Quisque imperdiet varius sagittis. Mauris elementum velit eget ullamcorper fringilla. Nullam magna orci, lacinia in fringilla sit amet, fringilla id tortor. Nulla quis tellus quis ligula feugiat faucibus. Vivamus volutpat sodales libero a imperdiet. Quisque libero nisl, lacinia eget velit sagittis, faucibus dictum risus. Vivamus felis nisi, sagittis ac rhoncus non, venenatis eget augue.</p>
+            <br />
+            <p>Mauris at erat in massa malesuada dictum a eget risus. Praesent sed nibh velit. Praesent vitae urna ut nibh mattis maximus sit amet non ante. Etiam a ullamcorper enim. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Pellentesque consectetur consectetur cursus. Aliquam semper maximus enim eget consectetur. Vivamus sed quam nisl. Aliquam a iaculis ipsum, ut rhoncus mauris. Suspendisse lorem massa, scelerisque ut nibh quis, tincidunt volutpat velit. Quisque a porttitor nibh. Nulla sit amet libero dapibus, vestibulum eros a, interdum justo. Curabitur commodo cursus felis quis sodales. Etiam eleifend vel lorem ac eleifend. Nulla ullamcorper aliquam efficitur. Ut enim ligula, varius in iaculis ut, dapibus in felis.</p>
+            <br />
+            <p>Donec molestie nisi a ullamcorper cursus. Maecenas ac gravida tortor. Etiam non massa purus. Suspendisse ullamcorper tellus nibh, quis pellentesque felis hendrerit in. Quisque sed urna ac nisl rhoncus mollis. Phasellus ultrices enim quis nisi fermentum pulvinar. Nulla eu mauris felis. Integer non risus pretium, rhoncus felis a, posuere enim. Aliquam magna sapien, posuere malesuada tempor eu, tristique eu massa. Curabitur ullamcorper lobortis tortor, et auctor nisl placerat nec. Mauris justo tellus, congue viverra lacus sed, commodo accumsan metus.</p>
+            <br />
+            <p>Sed ullamcorper libero non suscipit aliquam. Fusce libero mi, molestie sit amet ipsum luctus, eleifend ultricies ipsum. Mauris vitae rhoncus eros. Donec dapibus lacus nunc, eu consectetur ante tristique id. Nunc suscipit, lacus maximus lacinia rhoncus, purus ipsum lacinia turpis, non suscipit dui neque id neque. Aenean facilisis nunc felis, egestas elementum magna lobortis in. Suspendisse at feugiat metus, id mollis turpis. Sed sagittis, justo sit amet consectetur laoreet, ipsum turpis porttitor odio, id ultrices dolor quam vitae enim. Praesent interdum vitae massa a dictum. In ac tortor eget lorem maximus luctus et quis nibh. Sed sit amet luctus enim.</p>
+            <br />
+            <p>Integer malesuada dapibus dolor dignissim aliquet. Maecenas viverra augue id eros vestibulum, a tincidunt risus posuere. Nullam vitae malesuada orci, id porta neque. Morbi tincidunt ullamcorper interdum. Proin faucibus orci sapien, id condimentum leo pulvinar at. Nunc ipsum turpis, scelerisque eu consectetur ac, porta quis felis. Maecenas vulputate hendrerit lacus in aliquet. Sed lorem lorem, commodo at urna a, euismod placerat neque. Nunc non rhoncus nulla, gravida euismod lorem. In dignissim nisl et faucibus mattis. Quisque rhoncus ornare erat vitae tristique. Curabitur blandit non lacus vel tristique. Phasellus blandit nunc nec eleifend cursus. Cras erat magna, placerat in eros at, vehicula tempor nunc. Donec et nibh dictum, scelerisque dolor ac, volutpat purus.</p>
+        </div>
+    </div>
+
+    <!-- Bottom Links Section -->
+    <div class="bottom-links">
+        <div class="link-group">
+            <a href="#privacy">Privacy Policy</a>
+            <a href="#terms">Terms of Service</a>
+            <a href="#faq">FAQ</a>
+        </div>
+        <div class="link-group">
+            <a href="#facebook">Facebook</a>
+            <a href="#twitter">Twitter</a>
+            <a href="#linkedin">LinkedIn</a>
+        </div>
+        <div class="copyright">
+            © 2024 Inomunu. All Rights Reserved.
+        </div>
+    </div>
+
+    <script>
+        // Optional JavaScript for additional interactivity
+        document.querySelectorAll('.top-menu .nav-links a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = e.target.getAttribute('href').substring(1);
+                const targetSection = document.getElementById(targetId) || document.querySelector('.content');
+                targetSection.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        // Profile Dropdown Toggle
+        const profileToggle = document.getElementById('profileToggle');
+        const profileDropdown = document.getElementById('profileDropdown');
+
+        profileToggle.addEventListener('click', () => {
+            profileDropdown.classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!profileToggle.contains(e.target) && !profileDropdown.contains(e.target)) {
+                profileDropdown.classList.remove('active');
             }
-        </style>
-    </head>
-    <body>
-        <header>
-            <h1>Welocme to Inomunu</h1>
-            <!--<h3>your home of games</h3>-->
-        </header>
-    </body>
+        });
+    </script>
+</body>
 </html>
