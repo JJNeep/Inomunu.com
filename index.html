@@ -8,198 +8,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inomunu</title>
     <!--put ico named favicon in images folder-->
-    <link rel="icon" type="image/x-icon" href="./images/favicon.ico">
-    <style>
-        /* Reset and base styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-        }
-
-        /* Sticky Top Menu Bar */
-        .top-menu {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: #333;
-            color: white;
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 1000;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        .top-menu .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .top-menu .logo {
-            font-size: 1.5em;
-            font-weight: bold;
-        }
-
-        .top-menu .logo-image {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .top-menu .nav-links {
-            display: flex;
-            gap: 20px;
-        }
-
-        .top-menu .nav-links a {
-            color: white;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .top-menu .nav-links a:hover {
-            color: #ddd;
-        }
-
-        /* Profile Dropdown */
-        .profile-container {
-            position: relative;
-        }
-
-        .profile-button {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            background: none;
-            border: none;
-            color: white;
-        }
-
-        .profile-image {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            min-width: 200px;
-            z-index: 1100;
-            margin-top: 10px;
-        }
-
-        .dropdown-menu.active {
-            display: block;
-        }
-
-        .dropdown-menu::before {
-            content: '';
-            position: absolute;
-            top: -10px;
-            right: 10px;
-            border-left: 10px solid transparent;
-            border-right: 10px solid transparent;
-            border-bottom: 10px solid white;
-        }
-
-        .dropdown-menu a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 15px;
-            color: #333;
-            text-decoration: none;
-            transition: background-color 0.3s ease;
-        }
-
-        .dropdown-menu a:hover {
-            background-color: #f4f4f4;
-        }
-
-        .dropdown-menu .icon {
-            width: 20px;
-            height: 20px;
-            color: #666;
-        }
-
-        /* Content Area */
-        .content {
-            margin-top: 80px; /* Adjust based on menu height */
-            padding: 20px;
-        }
-
-        .content-section {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .content-image {
-            max-width: 100%;
-            height: auto;
-            margin: 20px 0;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        /* Bottom Links Section */
-        .bottom-links {
-            background-color: #f4f4f4;
-            padding: 30px 20px;
-            text-align: center;
-        }
-
-        .bottom-links .link-group {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 20px;
-        }
-
-        .bottom-links a {
-            color: #333;
-            text-decoration: none;
-            transition: color 0.3s ease;
-        }
-
-        .bottom-links a:hover {
-            color: #666;
-        }
-
-        .bottom-links .copyright {
-            color: #777;
-            font-size: 0.9em;
-        }
-    </style>
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
+    <link rel="stylesheet" type="text/css" href="/css/style.css">
 </head>
 <body>
     <!-- Sticky Top Menu Bar -->
     <div class="top-menu">
         <div class="logo-container">
-            <img src="./images/logo.svg" alt="Logo" class="logo-image">
+            <img src="/images/logo.svg" alt="Logo" class="logo-image">
             <div class="logo">Inomunu</div>
         </div>
         <nav class="nav-links">
-            <a href="./">Home</a>
-            <a href="./about">About Us</a>
-            <a href="./games">Games</a>
+            <a href="/">Home</a>
+            <a href="/about">About Us</a>
+            <a href="/games">Games</a>
         </nav>
         <!--<div class="profile-container">
             <button class="profile-button" id="profileToggle">
