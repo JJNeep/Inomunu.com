@@ -1,12 +1,12 @@
-// Optional JavaScript for additional interactivity
-document.querySelectorAll('.top-menu .nav-links a').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const targetId = e.target.getAttribute('href').substring(1);
-        const targetSection = document.getElementById(targetId) || document.querySelector('.content');
-        targetSection.scrollIntoView({ behavior: 'smooth' });
-    });
-});
+//// Optional JavaScript for additional interactivity
+//document.querySelectorAll('.top-menu .nav-links a').forEach(link => {
+//    link.addEventListener('click', (e) => {
+//        e.preventDefault();
+//        const targetId = e.target.getAttribute('href').substring(1);
+//        const targetSection = document.getElementById(targetId) || document.querySelector('.content');
+//        targetSection.scrollIntoView({ behavior: 'smooth' });
+//    });
+//});
 
 // Profile Dropdown Toggle
 const profileToggle = document.getElementById('profileToggle');
