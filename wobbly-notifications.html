@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jelly Notifications</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #f0f2f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Prevent scroll for the demo */
+        }
+
+        #phone-container {
+            width: 360px;
+            height: 700px;
+            background: #fff;
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+            border: 8px solid #222;
+        }
+
+        /* The Notch */
+        #phone-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 25px;
+            background: #222;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            z-index: 10;
+        }
+
+        .header {
+            padding: 40px 20px 20px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            user-select: none;
+        }
+
+        .notification-list {
+            padding: 0 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .notification {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.03);
+            cursor: grab;
+            position: relative;
+            /* Critical for performance */
+            will-change: transform; 
+            user-select: none;
+            touch-action: none; /* Take full control of touch */
+            transform-origin: center center;
+        }
+
+        .notification:active {
+            cursor: grabbing;
+        }
+
+        /* Content Styling */
+        .n-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 12px;
+            color: #888;
+        }
+        .n-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+        .n-body {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.4;
+        }
+        .icon {
+            width: 24px;
+            height: 24px;
+            background: #eee;
+            border-radius: 6px;
+            margin-right: 10px;
+            float: left;
+        }
+        .message-blue .icon { background: #e3f2fd; color: #2196f3; display: grid; place-items: center; font-size: 12px;}
+        .message-green .icon { background: #e8f5e9; color: #4caf50; display: grid; place-items: center; font-size: 12px;}
+        .message-red .icon { background: #ffebee; color: #f44336; display: grid; place-items: center; font-size: 12px;}
+
+    </style>
+</head>
+<body>
+
+    <div id="phone-container">
+        <div class="header">Notifications</div>
+        <div class="notification-list" id="list">
+            </div>
+    </div>
+
+<script>
+    // --- Configuration for "The Feel" ---
+    const CONFIG = {
+        stiffness: 0.15,  // Tension: Higher = snaps back faster
+        damping: 0.82,    // Friction: Lower = more wobbles (0.8 - 0.9 is the sweet spot)
+        mass: 1.0,        // Heaviness of items
+        neighborPull: 0.15, // How much dragging one moves the neighbors (0.0 to 1.0)
+        dragResistance: 0.4 // Makes it feel heavy to drag
+    };
+
+    const data = [
+        { app: 'Messages', time: 'Now', title: 'Sarah', body: 'See you at 8?', color: 'message-blue' },
+        { app: 'Calendar', time: '12m', title: 'Team Meeting', body: 'Discussing Q4 roadmap in Room A.', color: 'message-red' },
+        { app: 'Wallet', time: '1h', title: 'Payment Sent', body: 'You sent $25.00 to Coffee Shop.', color: 'message-green' },
+        { app: 'Home', time: '2h', title: 'Front Door', body: 'Motion detected at the front door.', color: 'message-blue' },
+        { app: 'System', time: '3h', title: 'Update Installed', body: 'Your device was updated successfully.', color: 'message-green' }
+    ];
+
+    const listContainer = document.getElementById('list');
+    let items = [];
+
+    // --- Physics Class for each Item ---
+    class SpringItem {
+        constructor(element, index) {
+            this.el = element;
+            this.index = index;
+            
+            // Physics state
+            this.x = 0;      // Current position
+            this.vx = 0;     // Velocity
+            this.target = 0; // Where it wants to go
+            
+            // Interaction state
+            this.isDragging = false;
+        }
+
+        update() {
+            // F = -kx - cv
+            const force = (this.target - this.x) * CONFIG.stiffness;
+            this.vx += force / CONFIG.mass;
+            this.vx *= CONFIG.damping;
+            this.x += this.vx;
+
+            // Stop micro-calculations if effectively stopped
+            if (Math.abs(this.x) < 0.01 && Math.abs(this.vx) < 0.01 && !this.isDragging) {
+                this.x = this.target;
+                this.vx = 0;
+            }
+
+            // Apply transform
+            // We add a tiny rotation based on X movement to make it feel organic
+            const rotate = this.x * 0.05; 
+            this.el.style.transform = `translateX(${this.x}px) rotate(${rotate}deg)`;
+        }
+    }
+
+    // --- Build UI ---
+    data.forEach((d, i) => {
+        const div = document.createElement('div');
+        div.className = `notification ${d.color}`;
+        div.innerHTML = `
+            <div class="n-header">
+                <span>${d.app}</span>
+                <span>${d.time}</span>
+            </div>
+            <div class="icon"></div>
+            <div class="n-title">${d.title}</div>
+            <div class="n-body">${d.body}</div>
+        `;
+        listContainer.appendChild(div);
+        items.push(new SpringItem(div, i));
+    });
+
+    // --- Interaction Logic ---
+    let activeIndex = -1;
+    let startX = 0;
+    let currentDragX = 0;
+
+    const handleStart = (e, index) => {
+        activeIndex = index;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        startX = clientX - items[index].x; // Account for current position if catching mid-air
+        items[index].isDragging = true;
+        
+        // Increase cursor size or style could go here
+    };
+
+    const handleMove = (e) => {
+        if (activeIndex === -1) return;
+        
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        // Calculate raw drag distance
+        let rawDelta = (clientX - startX);
+        
+        // Apply resistance (feels heavier the further you pull)
+        currentDragX = rawDelta * CONFIG.dragResistance;
+
+        // update the dragged item directly
+        const activeItem = items[activeIndex];
+        activeItem.target = currentDragX;
+        // Snap directly to finger for responsiveness, physics handles the "wobble" on release
+        // But for the "stick" feel, we let physics lag slightly behind finger? 
+        // No, for UI direct 1:1 feel is better for the active item.
+        activeItem.x = currentDragX; 
+        activeItem.vx = 0; // Reset velocity while holding
+
+        // --- THE MAGIC: Influence Neighbors ---
+        items.forEach((item, i) => {
+            if (i === activeIndex) return;
+
+            const dist = Math.abs(activeIndex - i);
+            // Influence drops off rapidly with distance (1/dist)
+            // If I move 100px, neighbor moves 15px, next moves 7px...
+            const influence = CONFIG.neighborPull / dist;
+            
+            // Set neighbor targets based on the active item's position
+            item.target = currentDragX * influence;
+        });
+    };
+
+    const handleEnd = () => {
+        if (activeIndex === -1) return;
+        
+        items[activeIndex].isDragging = false;
+        
+        // Snap everything back to zero
+        items.forEach(item => {
+            item.target = 0;
+            // We DO NOT reset velocity. 
+            // We let the current velocity carry it past 0 to create the wobble.
+        });
+
+        activeIndex = -1;
+    };
+
+    // --- Event Listeners ---
+    items.forEach((item, i) => {
+        // Touch
+        item.el.addEventListener('touchstart', (e) => handleStart(e, i), {passive: true});
+        // Mouse
+        item.el.addEventListener('mousedown', (e) => handleStart(e, i));
+    });
+
+    window.addEventListener('touchmove', handleMove, {passive: false});
+    window.addEventListener('touchend', handleEnd);
+    
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+
+    // --- Animation Loop ---
+    function animate() {
+        items.forEach(item => item.update());
+        requestAnimationFrame(animate);
+    }
+    animate();
+
+</script>
+</body>
+</html>
