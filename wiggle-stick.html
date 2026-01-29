@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satisfying Wiggle Stick</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #666;
+            user-select: none;
+        }
+        canvas {
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            cursor: grab;
+        }
+        canvas:active {
+            cursor: grabbing;
+        }
+        #hint {
+            position: absolute;
+            bottom: 20px;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="simCanvas"></canvas>
+    <div id="hint">Drag the orange tip and release</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // --- Configuration ---
+    const SEGMENT_COUNT = 25;
+    const SEGMENT_LENGTH = 15;
+    const STIFFNESS = 0.35; // How much it wants to be straight (0.0 - 1.0)
+    const DAMPING = 0.96;   // Friction (1.0 is perpetual motion)
+    const DRAG_RADIUS = 40; // Hitbox size for mouse
+
+    // --- State ---
+    let width, height;
+    let points = [];
+    let isDragging = false;
+    let dragIndex = -1;
+    const mouse = { x: 0, y: 0 };
+
+    // --- Physics Class ---
+    class Point {
+        constructor(x, y, fixed = false) {
+            this.x = x;
+            this.y = y;
+            this.oldx = x;
+            this.oldy = y;
+            this.fixed = fixed;
+        }
+
+        update() {
+            if (this.fixed) return;
+            if (isDragging && this === points[points.length - 1]) {
+                this.x = mouse.x;
+                this.y = mouse.y;
+                // Reset velocity when dragging so it doesn't explode on release
+                this.oldx = this.x;
+                this.oldy = this.y;
+                return;
+            }
+
+            const vx = (this.x - this.oldx) * DAMPING;
+            const vy = (this.y - this.oldy) * DAMPING;
+
+            this.oldx = this.x;
+            this.oldy = this.y;
+
+            this.x += vx;
+            this.y += vy;
+        }
+    }
+
+    // --- Initialization ---
+    function init() {
+        resize();
+        points = [];
+        const startX = width / 2;
+        const startY = height - 100; // Base of stick
+
+        for (let i = 0; i < SEGMENT_COUNT; i++) {
+            // Create a vertical line of points
+            points.push(new Point(startX, startY - (i * SEGMENT_LENGTH), i === 0));
+        }
+    }
+
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        // Re-center base if needed (optional, keeping it simple resets the stick)
+        if(points.length > 0) {
+            const diffX = (width/2) - points[0].x;
+            const diffY = (height - 100) - points[0].y;
+            points[0].x = width/2;
+            points[0].y = height - 100;
+        }
+    }
+
+    // --- Physics Engine ---
+    function updatePhysics() {
+        points.forEach(p => p.update());
+
+        // Relax constraints multiple times per frame for stiffness
+        const iterations = 10; 
+        for (let k = 0; k < iterations; k++) {
+            
+            // 1. Angular Constraint (The "Snap Back" force)
+            // This forces points to align with the base's vertical axis
+            // or aligns them relative to each other to create a stiff rod.
+            for (let i = 1; i < points.length - 1; i++) {
+                // To simulate a stick that wants to be straight vertical:
+                // We create a "target" position based on the parent point.
+                // But for a realistic "bendy ruler", we use local curvature.
+                
+                // Here is a simplified "Straightness" force:
+                // Each point tries to lie on the line formed by its neighbors.
+                
+                const pPrev = points[i - 1];
+                const pCurr = points[i];
+                const pNext = points[i + 1];
+
+                if (pCurr.fixed) continue;
+
+                // Calculate where pCurr "should" be (midpoint of neighbors)
+                const targetX = (pPrev.x + pNext.x) / 2;
+                const targetY = (pPrev.y + pNext.y) / 2;
+
+                // Nudge towards target
+                const dx = targetX - pCurr.x;
+                const dy = targetY - pCurr.y;
+
+                // Apply force
+                if (!pCurr.fixed) {
+                    pCurr.x += dx * STIFFNESS;
+                    pCurr.y += dy * STIFFNESS;
+                }
+            }
+            
+            // Special case for the tip (it has no 'next' point)
+            // It tries to align with the vector of the previous segment
+            let last = points[points.length-1];
+            let prev = points[points.length-2];
+            let prev2 = points[points.length-3];
+            
+            // Extend the line from prev2 -> prev
+            let dx = prev.x - prev2.x;
+            let dy = prev.y - prev2.y;
+            let targetX = prev.x + dx;
+            let targetY = prev.y + dy;
+            
+            if (!isDragging) {
+                last.x += (targetX - last.x) * STIFFNESS;
+                last.y += (targetY - last.y) * STIFFNESS;
+            }
+
+
+            // 2. Distance Constraint (Keep stick from stretching)
+            for (let i = 0; i < points.length - 1; i++) {
+                const p1 = points[i];
+                const p2 = points[i + 1];
+
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const diff = dist - SEGMENT_LENGTH;
+
+                if (dist === 0) continue; // prevent divide by 0
+
+                const percent = diff / dist / 2;
+                const offsetX = dx * percent;
+                const offsetY = dy * percent;
+
+                if (!p1.fixed) {
+                    p1.x += offsetX;
+                    p1.y += offsetY;
+                }
+                if (!p2.fixed && !(isDragging && i + 1 === points.length - 1)) {
+                    p2.x -= offsetX;
+                    p2.y -= offsetY;
+                }
+            }
+        }
+    }
+
+    // --- Rendering ---
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw Base
+        ctx.fillStyle = "#333";
+        ctx.fillRect(points[0].x - 20, points[0].y, 40, 10);
+
+        // Draw Stick
+        ctx.beginPath();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        
+        // Draw the curve
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length - 2; i++) {
+            const xc = (points[i].x + points[i + 1].x) / 2;
+            const yc = (points[i].y + points[i + 1].y) / 2;
+            ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+        }
+        // Curve through the last two points
+        ctx.quadraticCurveTo(
+            points[points.length - 2].x, 
+            points[points.length - 2].y, 
+            points[points.length - 1].x, 
+            points[points.length - 1].y
+        );
+
+        // Styling for the stick
+        ctx.lineWidth = 12;
+        // Gradient stroke
+        const grad = ctx.createLinearGradient(points[0].x, points[0].y, points[points.length-1].x, points[points.length-1].y);
+        grad.addColorStop(0, "#4a90e2");
+        grad.addColorStop(1, "#ff6b6b");
+        ctx.strokeStyle = grad;
+        ctx.stroke();
+
+        // Draw Tip Handle
+        const tip = points[points.length - 1];
+        ctx.beginPath();
+        ctx.arc(tip.x, tip.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = "#ff6b6b";
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    // --- Animation Loop ---
+    function loop() {
+        updatePhysics();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    // --- Events ---
+    window.addEventListener('resize', resize);
+    
+    const onDown = (e) => {
+        const x = e.clientX || e.touches[0].clientX;
+        const y = e.clientY || e.touches[0].clientY;
+        mouse.x = x;
+        mouse.y = y;
+
+        // Check if clicking near the tip
+        const tip = points[points.length - 1];
+        const dx = x - tip.x;
+        const dy = y - tip.y;
+        if (Math.sqrt(dx*dx + dy*dy) < DRAG_RADIUS) {
+            isDragging = true;
+        }
+    };
+
+    const onMove = (e) => {
+        const x = e.clientX || e.touches[0].clientX;
+        const y = e.clientY || e.touches[0].clientY;
+        mouse.x = x;
+        mouse.y = y;
+        
+        // Change cursor if hovering tip
+        if(!isDragging) {
+             const tip = points[points.length - 1];
+             const dx = x - tip.x;
+             const dy = y - tip.y;
+             canvas.style.cursor = (Math.sqrt(dx*dx + dy*dy) < DRAG_RADIUS) ? 'grab' : 'default';
+        }
+    };
+
+    const onUp = () => {
+        isDragging = false;
+        canvas.style.cursor = 'default';
+    };
+
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    
+    window.addEventListener('touchstart', onDown, {passive: false});
+    window.addEventListener('touchmove', (e) => { e.preventDefault(); onMove(e); }, {passive: false});
+    window.addEventListener('touchend', onUp);
+
+    // Start
+    init();
+    loop();
+
+</script>
+</body>
+</html>
