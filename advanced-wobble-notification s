@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jelly Shade UI</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #e0e5ec;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #phone {
+            width: 360px;
+            height: 720px;
+            background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop') center/cover;
+            border-radius: 40px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.2), inset 0 0 0 8px #111;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* The Pull Handle / Status Bar */
+        #status-bar-trigger {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            z-index: 100;
+            cursor: grab;
+            display: flex;
+            justify-content: center;
+            padding-top: 15px;
+        }
+        
+        #handle-bar {
+            width: 60px;
+            height: 5px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+
+        /* The Notification Shade Container */
+        #shade {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 100%;
+            background: rgba(20, 20, 25, 0.95);
+            backdrop-filter: blur(15px);
+            transform: translateY(-100%); /* Hidden by default */
+            display: flex;
+            flex-direction: column;
+            padding: 60px 20px 20px;
+            box-sizing: border-box;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+        }
+
+        /* Quick Settings Grid */
+        #quick-settings {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 10px 0;
+        }
+
+        .qs-pill {
+            background: #333;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            will-change: transform;
+        }
+        
+        .qs-pill.active {
+            background: #6c5ce7;
+            color: white;
+        }
+
+        /* Notification List */
+        #notif-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .notif-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 18px;
+            padding: 16px;
+            color: white;
+            will-change: transform;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .n-top { display: flex; justify-content: space-between; font-size: 11px; opacity: 0.7; margin-bottom: 6px; }
+        .n-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        .n-desc { font-size: 13px; opacity: 0.8; }
+
+        /* Hint Text */
+        #hint {
+            position: absolute;
+            bottom: 40px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-weight: 500;
+            opacity: 0.8;
+            pointer-events: none;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="phone">
+        <div id="status-bar-trigger">
+            <div id="handle-bar"></div>
+        </div>
+
+        <div id="shade">
+            <div id="quick-settings">
+                </div>
+
+            <div id="notif-list">
+                 </div>
+        </div>
+        
+        <div id="hint">Pull from top ↓</div>
+    </div>
+
+<script>
+    // --- Configuration ---
+    // The "Spring" feel for the content items
+    const SPRING_CONFIG = {
+        stiffness: 0.12,  // Lower = looser, more wobble
+        damping: 0.75,    // Lower = more bounces
+        massBase: 1.0,    // Base heaviness
+        massInc: 0.05     // Each item gets slightly heavier down the list (creates the wave)
+    };
+
+    // --- Data ---
+    const qsData = [
+        { icon: '📶', active: true }, { icon: '🔵', active: true }, 
+        { icon: '🔦', active: false }, { icon: '✈️', active: false }
+    ];
+
+    const notifData = [
+        { app: 'Instagram', time: '2m', title: 'New Like', desc: 'Sarah liked your story.' },
+        { app: 'Gmail', time: '15m', title: 'Security Alert', desc: 'New login from Windows PC.' },
+        { app: 'YouTube', time: '1h', title: 'MKBHD', desc: 'Uploaded: The Best Tech of 2026' },
+        { app: 'Spotify', time: '2h', title: 'Discover Weekly', desc: 'New music is ready for you.' }
+    ];
+
+    // --- Initialization ---
+    const qsContainer = document.getElementById('quick-settings');
+    const notifContainer = document.getElementById('notif-list');
+    const shade = document.getElementById('shade');
+    const trigger = document.getElementById('status-bar-trigger');
+    const phoneHeight = 720;
+    
+    // Create Elements
+    const physicsItems = [];
+
+    // 1. Build Quick Settings
+    qsData.forEach((d, i) => {
+        const el = document.createElement('div');
+        el.className = `qs-pill ${d.active ? 'active' : ''}`;
+        el.innerHTML = d.icon;
+        qsContainer.appendChild(el);
+        
+        // Assign Physics Object
+        physicsItems.push({
+            el: el,
+            y: -50, velocity: 0, 
+            mass: SPRING_CONFIG.massBase + (i * 0.02) // Slight variance
+        });
+    });
+
+    // 2. Build Notifications
+    notifData.forEach((d, i) => {
+        const el = document.createElement('div');
+        el.className = 'notif-card';
+        el.innerHTML = `
+            <div class="n-top"><span>${d.app}</span><span>${d.time}</span></div>
+            <div class="n-title">${d.title}</div>
+            <div class="n-desc">${d.desc}</div>
+        `;
+        notifContainer.appendChild(el);
+
+        // Assign Physics Object (Heavier mass for lower items)
+        physicsItems.push({
+            el: el,
+            y: -100, velocity: 0,
+            mass: SPRING_CONFIG.massBase + 0.5 + (i * SPRING_CONFIG.massInc) 
+        });
+    });
+
+    // --- Shade Logic ---
+    let shadeY = 0;
+    let shadeVelocity = 0;
+    let isDragging = false;
+    let startY = 0;
+    let currentDragY = 0;
+    let shadeOpen = false;
+
+    // --- Physics Loop ---
+    function updatePhysics() {
+        
+        // 1. Handle Shade Movement (Simple Spring towards open/closed state)
+        let targetShade = shadeOpen ? phoneHeight : 0;
+        
+        if (isDragging) {
+            // While dragging, follow finger directly
+            shadeY = currentDragY;
+            // Calculate velocity for "throw" effect
+            // (Simple smoothing for demo)
+        } else {
+            // Spring the shade itself
+            const force = (targetShade - shadeY) * 0.2; // Stiff spring for container
+            shadeVelocity += force;
+            shadeVelocity *= 0.85; // Heavy damping for container
+            shadeY += shadeVelocity;
+        }
+
+        // Clamp shade
+        if (shadeY < 0) shadeY = 0;
+        if (shadeY > phoneHeight) shadeY = phoneHeight;
+
+        // Apply Shade Transform
+        // We map 0 -> 720px to -100% -> 0%
+        const percent = (shadeY / phoneHeight) * 100 - 100;
+        shade.style.transform = `translateY(${percent}%)`;
+
+
+        // 2. Handle Content "Wobble" (The core effect)
+        // The content target is ALWAYS 0 (relative to their natural DOM position).
+        // But we add an offset based on the shade's velocity/acceleration.
+        
+        physicsItems.forEach(item => {
+            // Calculate "Inertial Force"
+            // If the shade is moving DOWN (+), the item wants to stay UP (-)
+            // We simulate this by adjusting the 'target' temporarily or applying force.
+            
+            // To make it simple: The item is a spring attached to a moving ceiling.
+            // Target is 0.
+            
+            // We apply an external force based on the Shade's acceleration would be accurate,
+            // but simply adding the Shade's velocity to the Item's velocity works great for UI.
+            
+            // If the shade stops suddenly (velocity goes high -> zero), the item preserves velocity.
+            
+            // Spring Force towards 0 (Home position)
+            const force = (0 - item.y) * SPRING_CONFIG.stiffness;
+            item.velocity += force / item.mass;
+            
+            // Friction
+            item.velocity *= SPRING_CONFIG.damping;
+            
+            // Inject Shade Momentum
+            // This is the "Magic": When the shade moves, it drags the air around the items.
+            // But we actually want the REVERSE. If shade moves down, items lag up.
+            // A simple trick: When shade accelerates, apply opposite force?
+            // Easier: Just update position, but use previous shade Y to calculate delta.
+            
+            item.y += item.velocity;
+            
+            // Render
+            item.el.style.transform = `translateY(${item.y}px)`;
+        });
+
+        // 3. Inject "Lag"
+        // We calculate how much the shade moved this frame
+        const shadeDelta = shadeY - prevShadeY;
+        
+        // We push the items in the OPPOSITE direction of the movement slightly
+        // creating the illusion that they are floating inside.
+        if (Math.abs(shadeDelta) > 0.1) {
+            physicsItems.forEach(item => {
+                // The factor (0.5) determines how "loose" they feel.
+                // 1.0 means they stay fixed in world space (slide completely).
+                // 0.0 means they are glued to the shade.
+                item.y -= shadeDelta * 0.4; 
+            });
+        }
+
+        prevShadeY = shadeY;
+
+        requestAnimationFrame(updatePhysics);
+    }
+    
+    let prevShadeY = 0;
+
+
+    // --- Input Handling ---
+    const startDrag = (y) => {
+        isDragging = true;
+        startY = y;
+        // If closed, we start from 0. If open, we start from height.
+        const currentOffset = shadeOpen ? phoneHeight : 0;
+        startY -= currentOffset; 
+        document.getElementById('hint').style.opacity = '0';
+    };
+
+    const moveDrag = (y) => {
+        if (!isDragging) return;
+        currentDragY = y - startY;
+        // Resistance at bottom
+        if (currentDragY > phoneHeight) currentDragY = phoneHeight + (currentDragY - phoneHeight) * 0.2;
+    };
+
+    const endDrag = () => {
+        isDragging = false;
+        // Snap logic
+        if (shadeY > phoneHeight / 3) {
+            shadeOpen = true;
+        } else {
+            shadeOpen = false;
+        }
+    };
+
+    // Touch
+    trigger.addEventListener('touchstart', e => startDrag(e.touches[0].clientY), {passive:false});
+    window.addEventListener('touchmove', e => moveDrag(e.touches[0].clientY), {passive:false});
+    window.addEventListener('touchend', endDrag);
+
+    // Mouse
+    trigger.addEventListener('mousedown', e => startDrag(e.clientY));
+    window.addEventListener('mousemove', e => moveDrag(e.clientY));
+    window.addEventListener('mouseup', endDrag);
+    
+    // Allow closing by dragging the bottom of the shade too
+    shade.addEventListener('mousedown', e => {
+        if(shadeOpen) startDrag(e.clientY);
+    });
+    shade.addEventListener('touchstart', e => {
+        if(shadeOpen) startDrag(e.touches[0].clientY);
+    }, {passive:false});
+
+
+    // Start
+    updatePhysics();
+
+</script>
+</body>
+</html>
