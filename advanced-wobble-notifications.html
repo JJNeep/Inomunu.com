@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jelly Shade UI</title>
+    <title>Jelly Shade 2.0</title>
     <style>
         body {
             margin: 0;
-            background-color: #e0e5ec;
+            background-color: #121212;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             justify-content: center;
@@ -18,108 +18,107 @@
 
         #phone {
             width: 360px;
-            height: 720px;
-            background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop') center/cover;
-            border-radius: 40px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.2), inset 0 0 0 8px #111;
+            height: 740px;
+            background: url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1000&auto=format&fit=crop') center/cover;
+            border-radius: 45px;
+            box-shadow: 0 0 0 12px #222, 0 40px 80px rgba(0,0,0,0.5);
             position: relative;
             overflow: hidden;
         }
 
-        /* The Pull Handle / Status Bar */
-        #status-bar-trigger {
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 60px;
-            z-index: 100;
-            cursor: grab;
-            display: flex;
-            justify-content: center;
-            padding-top: 15px;
-        }
-        
-        #handle-bar {
-            width: 60px;
-            height: 5px;
-            background: rgba(255,255,255,0.8);
-            border-radius: 10px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-        }
-
-        /* The Notification Shade Container */
+        /* --- THE SHADE --- */
         #shade {
             position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 100%;
-            background: rgba(20, 20, 25, 0.95);
-            backdrop-filter: blur(15px);
-            transform: translateY(-100%); /* Hidden by default */
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 15, 20, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transform: translateY(-100%); /* Hidden initially */
             display: flex;
             flex-direction: column;
-            padding: 60px 20px 20px;
+            z-index: 100;
+            /* We handle scroll/drag manually, so no native scroll */
+            touch-action: none; 
+        }
+
+        #shade-content {
+            padding: 60px 20px 0;
+            height: 100%;
             box-sizing: border-box;
-            border-bottom-left-radius: 30px;
-            border-bottom-right-radius: 30px;
+            position: relative;
         }
 
-        /* Quick Settings Grid */
-        #quick-settings {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-bottom: 30px;
-            padding: 10px 0;
+        /* --- HORIZONTAL QUICK SETTINGS --- */
+        #qs-container {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 20px;
+            /* Native scroll hidden, we assume drag logic or CSS hide */
+            overflow: hidden; 
+            white-space: nowrap;
+            position: relative;
+            cursor: grab;
         }
 
-        .qs-pill {
-            background: #333;
-            aspect-ratio: 1;
-            border-radius: 50%;
-            display: flex;
+        .qs-track {
+            display: inline-flex;
+            gap: 20px;
+            padding: 10px 5px;
+            /* We will move this track with JS for physics */
+        }
+
+        .qs-item {
+            width: 65px;
+            height: 65px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            display: inline-flex;
             justify-content: center;
             align-items: center;
+            font-size: 24px;
             color: white;
-            font-size: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            will-change: transform;
-        }
-        
-        .qs-pill.active {
-            background: #6c5ce7;
-            color: white;
-        }
-
-        /* Notification List */
-        #notif-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .notif-card {
-            background: rgba(255,255,255,0.1);
-            border-radius: 18px;
-            padding: 16px;
-            color: white;
+            flex-shrink: 0;
             will-change: transform;
             border: 1px solid rgba(255,255,255,0.05);
         }
+        
+        .qs-item.active { background: #6c5ce7; color: #fff; }
 
-        .n-top { display: flex; justify-content: space-between; font-size: 11px; opacity: 0.7; margin-bottom: 6px; }
-        .n-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
-        .n-desc { font-size: 13px; opacity: 0.8; }
+        /* --- NOTIFICATIONS --- */
+        #notif-container {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            height: 500px; /* Space for items */
+        }
 
-        /* Hint Text */
-        #hint {
+        .notif-card {
+            position: absolute; /* Physics engine controls position */
+            left: 0; right: 0;
+            height: 80px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 18px;
+            padding: 15px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            will-change: transform, opacity;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .n-head { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-bottom: 5px; pointer-events: none;}
+        .n-title { font-weight: 700; font-size: 15px; color: #111; pointer-events: none;}
+        .n-desc { font-size: 13px; color: #444; pointer-events: none;}
+
+        /* --- HINT --- */
+        #drag-hint {
             position: absolute;
-            bottom: 40px;
-            width: 100%;
-            text-align: center;
-            color: white;
-            font-weight: 500;
-            opacity: 0.8;
-            pointer-events: none;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            top: 10px; left: 50%;
+            transform: translateX(-50%);
+            width: 40px; height: 5px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
         }
 
     </style>
@@ -127,232 +126,375 @@
 <body>
 
     <div id="phone">
-        <div id="status-bar-trigger">
-            <div id="handle-bar"></div>
+        <div style="padding: 40px 20px; color: white; text-align: center; opacity: 0.8;">
+            <h2>10:42</h2>
+            <p>Swipe down for Jelly</p>
         </div>
 
         <div id="shade">
-            <div id="quick-settings">
+            <div id="drag-hint"></div>
+            <div id="shade-content">
+                
+                <div id="qs-container">
+                    <div class="qs-track" id="qs-track">
+                        </div>
                 </div>
 
-            <div id="notif-list">
-                 </div>
+                <div id="notif-container">
+                    </div>
+
+            </div>
         </div>
-        
-        <div id="hint">Pull from top ↓</div>
     </div>
 
 <script>
-    // --- Configuration ---
-    // The "Spring" feel for the content items
-    const SPRING_CONFIG = {
-        stiffness: 0.12,  // Lower = looser, more wobble
-        damping: 0.75,    // Lower = more bounces
-        massBase: 1.0,    // Base heaviness
-        massInc: 0.05     // Each item gets slightly heavier down the list (creates the wave)
+    // --- PHYSICS CONFIGURATION ---
+    const CONFIG = {
+        shadeStiffness: 0.1,    // How snappy the main drawer is
+        shadeDamping: 0.82,     // How much it wobbles (0.8 = lots, 0.9 = less)
+        
+        itemStiffness: 0.15,    // How snappy notifications are
+        itemDamping: 0.75,      // Wobbly notifications
+        
+        swipeThreshold: 120,    // Pixel distance to trigger delete
+        
+        qsLag: 0.5              // How much Quick Settings lag behind scroll (0 to 1)
     };
 
-    // --- Data ---
-    const qsData = [
-        { icon: '📶', active: true }, { icon: '🔵', active: true }, 
-        { icon: '🔦', active: false }, { icon: '✈️', active: false }
+    // --- DATA ---
+    const qsData = ['📶','🌑','🔦','🔋','✈️','📷','🎵','📍','💾','💎'];
+    let notifData = [
+        { app: 'Messages', title: 'Mom', desc: 'Don\'t forget dinner!' },
+        { app: 'Discord', title: 'Server Alert', desc: '@everyone Raid starting now' },
+        { app: 'Gmail', title: 'Amazon', desc: 'Your package has been delivered' },
+        { app: 'Calendar', title: 'Meeting', desc: 'Design review in 15 mins' },
+        { app: 'YouTube', title: 'New Upload', desc: 'Veritasium posted a video' }
     ];
 
-    const notifData = [
-        { app: 'Instagram', time: '2m', title: 'New Like', desc: 'Sarah liked your story.' },
-        { app: 'Gmail', time: '15m', title: 'Security Alert', desc: 'New login from Windows PC.' },
-        { app: 'YouTube', time: '1h', title: 'MKBHD', desc: 'Uploaded: The Best Tech of 2026' },
-        { app: 'Spotify', time: '2h', title: 'Discover Weekly', desc: 'New music is ready for you.' }
-    ];
-
-    // --- Initialization ---
-    const qsContainer = document.getElementById('quick-settings');
-    const notifContainer = document.getElementById('notif-list');
+    // --- SETUP ELEMENTS ---
     const shade = document.getElementById('shade');
-    const trigger = document.getElementById('status-bar-trigger');
-    const phoneHeight = 720;
-    
-    // Create Elements
-    const physicsItems = [];
+    const notifContainer = document.getElementById('notif-container');
+    const qsTrack = document.getElementById('qs-track');
+    const phoneHeight = 740;
 
-    // 1. Build Quick Settings
-    qsData.forEach((d, i) => {
-        const el = document.createElement('div');
-        el.className = `qs-pill ${d.active ? 'active' : ''}`;
-        el.innerHTML = d.icon;
-        qsContainer.appendChild(el);
-        
-        // Assign Physics Object
-        physicsItems.push({
-            el: el,
-            y: -50, velocity: 0, 
-            mass: SPRING_CONFIG.massBase + (i * 0.02) // Slight variance
-        });
-    });
-
-    // 2. Build Notifications
-    notifData.forEach((d, i) => {
-        const el = document.createElement('div');
-        el.className = 'notif-card';
-        el.innerHTML = `
-            <div class="n-top"><span>${d.app}</span><span>${d.time}</span></div>
-            <div class="n-title">${d.title}</div>
-            <div class="n-desc">${d.desc}</div>
-        `;
-        notifContainer.appendChild(el);
-
-        // Assign Physics Object (Heavier mass for lower items)
-        physicsItems.push({
-            el: el,
-            y: -100, velocity: 0,
-            mass: SPRING_CONFIG.massBase + 0.5 + (i * SPRING_CONFIG.massInc) 
-        });
-    });
-
-    // --- Shade Logic ---
-    let shadeY = 0;
+    // --- STATE MANAGEMENT ---
+    let shadeY = 0;          // Current visual Y of shade
+    let shadeTarget = 0;     // Where shade wants to go (0 or phoneHeight)
     let shadeVelocity = 0;
+    
+    // Quick Settings Scroll State
+    let qsScrollX = 0;
+    let qsMaxScroll = 0;
+    
+    // Interaction State
     let isDragging = false;
-    let startY = 0;
-    let currentDragY = 0;
-    let shadeOpen = false;
+    let dragStartY = 0;
+    let dragStartShadeY = 0;
+    let activeCardIndex = -1; // If swiping a card
+    let activeCardStartX = 0;
 
-    // --- Physics Loop ---
-    function updatePhysics() {
-        
-        // 1. Handle Shade Movement (Simple Spring towards open/closed state)
-        let targetShade = shadeOpen ? phoneHeight : 0;
-        
-        if (isDragging) {
-            // While dragging, follow finger directly
-            shadeY = currentDragY;
-            // Calculate velocity for "throw" effect
-            // (Simple smoothing for demo)
-        } else {
-            // Spring the shade itself
-            const force = (targetShade - shadeY) * 0.2; // Stiff spring for container
-            shadeVelocity += force;
-            shadeVelocity *= 0.85; // Heavy damping for container
-            shadeY += shadeVelocity;
+    // --- BUILD UI & PHYSICS OBJECTS ---
+    
+    // 1. Quick Settings Objects
+    let qsItems = [];
+    qsData.forEach((icon, i) => {
+        const el = document.createElement('div');
+        el.className = `qs-item ${i<2?'active':''}`;
+        el.innerHTML = icon;
+        qsTrack.appendChild(el);
+        // Physics object for each icon (for the horizontal wobble)
+        qsItems.push({ el, x: 0, velocity: 0, baseOffset: 0 });
+    });
+
+    // 2. Notification Objects
+    // We use a LinkedList approach or just a managed array where we track Target Y
+    class CardItem {
+        constructor(data, index) {
+            this.el = document.createElement('div');
+            this.el.className = 'notif-card';
+            this.el.innerHTML = `
+                <div class="n-head"><span>${data.app}</span><span>Now</span></div>
+                <div class="n-title">${data.title}</div>
+                <div class="n-desc">${data.desc}</div>
+            `;
+            notifContainer.appendChild(this.el);
+            
+            this.height = 90; // Height + margin
+            this.index = index;
+            this.deleted = false;
+            
+            // Physics Props
+            this.x = 0; // Horizontal (Swipe)
+            this.y = 800; // Start off screen
+            this.vx = 0;
+            this.vy = 0;
+            this.scale = 1;
         }
 
-        // Clamp shade
-        if (shadeY < 0) shadeY = 0;
-        if (shadeY > phoneHeight) shadeY = phoneHeight;
+        update(targetY, shadeVel) {
+            if (this.deleted) return;
 
-        // Apply Shade Transform
-        // We map 0 -> 720px to -100% -> 0%
-        const percent = (shadeY / phoneHeight) * 100 - 100;
-        shade.style.transform = `translateY(${percent}%)`;
+            // -- Vertical Physics (The Gap Fill Wobble) --
+            // Hook's Law: F = -k * displacement
+            const dy = targetY - this.y;
+            const forceY = dy * CONFIG.itemStiffness;
+            this.vy += forceY;
+            this.vy *= CONFIG.itemDamping;
+            
+            // Add Shade Inertia (The "Float" when pulling shade)
+            // If shade moves down rapidly, items should lag up slightly
+            // We inject a tiny bit of the shade's velocity into the item
+            if (Math.abs(shadeVel) > 1) {
+               this.y -= shadeVel * 0.05; 
+            }
 
+            this.y += this.vy;
 
-        // 2. Handle Content "Wobble" (The core effect)
-        // The content target is ALWAYS 0 (relative to their natural DOM position).
-        // But we add an offset based on the shade's velocity/acceleration.
+            // -- Horizontal Physics (Swipe) --
+            if (activeCardIndex === this.index) {
+                // Direct control if dragging this specific card
+                // handled in touchmove
+            } else {
+                // Spring back to center (0)
+                const dx = 0 - this.x;
+                this.vx += dx * 0.2;
+                this.vx *= 0.7; // Heavy damping for side swipe return
+                this.x += this.vx;
+            }
+
+            // Apply
+            const rot = this.x * 0.05; // Rotate when swiping
+            this.el.style.transform = `translate(${this.x}px, ${this.y}px) rotate(${rot}deg) scale(${this.scale})`;
+            this.el.style.opacity = 1 - (Math.abs(this.x) / 300); // Fade out
+        }
+    }
+
+    let cards = notifData.map((d, i) => new CardItem(d, i));
+
+    // --- MAIN LOOP ---
+    function loop() {
         
-        physicsItems.forEach(item => {
-            // Calculate "Inertial Force"
-            // If the shade is moving DOWN (+), the item wants to stay UP (-)
-            // We simulate this by adjusting the 'target' temporarily or applying force.
+        // 1. Shade Physics
+        // Spring towards target
+        const shadeForce = (shadeTarget - shadeY) * CONFIG.shadeStiffness;
+        shadeVelocity += shadeForce;
+        shadeVelocity *= CONFIG.shadeDamping;
+        shadeY += shadeVelocity;
+
+        // Apply to DOM
+        // Map 0 -> Height to -100% -> 0%
+        const pct = (shadeY / phoneHeight) * 100 - 100;
+        shade.style.transform = `translateY(${pct}%)`;
+
+        // 2. Notification Physics
+        let currentYTarget = 0;
+        
+        cards.forEach((card, i) => {
+            if (card.deleted) return;
             
-            // To make it simple: The item is a spring attached to a moving ceiling.
-            // Target is 0.
+            // Calculate where this card *should* be
+            card.update(currentYTarget, shadeVelocity);
             
-            // We apply an external force based on the Shade's acceleration would be accurate,
-            // but simply adding the Shade's velocity to the Item's velocity works great for UI.
-            
-            // If the shade stops suddenly (velocity goes high -> zero), the item preserves velocity.
-            
-            // Spring Force towards 0 (Home position)
-            const force = (0 - item.y) * SPRING_CONFIG.stiffness;
-            item.velocity += force / item.mass;
-            
-            // Friction
-            item.velocity *= SPRING_CONFIG.damping;
-            
-            // Inject Shade Momentum
-            // This is the "Magic": When the shade moves, it drags the air around the items.
-            // But we actually want the REVERSE. If shade moves down, items lag up.
-            // A simple trick: When shade accelerates, apply opposite force?
-            // Easier: Just update position, but use previous shade Y to calculate delta.
-            
-            item.y += item.velocity;
-            
-            // Render
-            item.el.style.transform = `translateY(${item.y}px)`;
+            // Increment target for next card
+            currentYTarget += card.height;
         });
 
-        // 3. Inject "Lag"
-        // We calculate how much the shade moved this frame
-        const shadeDelta = shadeY - prevShadeY;
+        // 3. Quick Settings Physics (Horizontal Jelly)
+        // We calculate delta of the scroll container
+        // qsScrollX is managed by logic, but let's assume we just move the track
+        qsTrack.style.transform = `translateX(${qsScrollX}px)`;
         
-        // We push the items in the OPPOSITE direction of the movement slightly
-        // creating the illusion that they are floating inside.
-        if (Math.abs(shadeDelta) > 0.1) {
-            physicsItems.forEach(item => {
-                // The factor (0.5) determines how "loose" they feel.
-                // 1.0 means they stay fixed in world space (slide completely).
-                // 0.0 means they are glued to the shade.
-                item.y -= shadeDelta * 0.4; 
+        // Animate individual items to "Lag" behind the scroll
+        // The track moves left (-), items should momentarily drift right (+)
+        qsItems.forEach((item, i) => {
+            // Calculate lag force
+            // We want item.x to be 0 relative to parent.
+            // But we push it based on scroll acceleration (diff between frames)
+            // Simplified: Item position is influenced by velocity of scroll
+            
+            // Note: In a real robust engine we'd calculate scroll velocity. 
+            // Here we'll simulate a "Jiggle" based on scroll change.
+             
+             // Spring back to 0
+             const force = (0 - item.x) * 0.2;
+             item.velocity += force;
+             item.velocity *= 0.8;
+             item.x += item.velocity;
+             
+             item.el.style.transform = `translateX(${item.x}px)`;
+        });
+
+        requestAnimationFrame(loop);
+    }
+    loop();
+
+
+    // --- INPUT HANDLING (The Brain) ---
+    
+    let mode = 'idle'; // 'shade', 'swipe', 'scrollQS'
+    let lastX = 0;
+    let lastY = 0;
+    let qsVelocity = 0;
+
+    const onStart = (e) => {
+        isDragging = true;
+        const x = e.touches ? e.touches[0].clientX : e.clientX;
+        const y = e.touches ? e.touches[0].clientY : e.clientY;
+        lastX = x;
+        lastY = y;
+        dragStartY = y;
+        dragStartShadeY = shadeY; // Anchor offset
+        
+        // Determine what we clicked
+        const target = e.target;
+        
+        // Check Quick Settings
+        if (target.closest('#qs-container')) {
+            mode = 'scrollQS';
+            qsMaxScroll = -(qsTrack.offsetWidth - 320); // 320 is container width
+            return;
+        }
+
+        // Check Notification (Swipe)
+        const cardEl = target.closest('.notif-card');
+        if (cardEl && shadeY > 600) { // Only allow swipe if shade is mostly open
+            // Find index
+            const index = cards.findIndex(c => c.el === cardEl);
+            if (index !== -1) {
+                activeCardIndex = index;
+                activeCardStartX = x;
+                // We don't set mode yet, we wait for direction (swipe vs scroll)
+                mode = 'maybeSwipe';
+                return;
+            }
+        }
+        
+        // Default: Move Shade
+        mode = 'shade';
+    };
+
+    const onMove = (e) => {
+        if (!isDragging) return;
+        const x = e.touches ? e.touches[0].clientX : e.clientX;
+        const y = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        const dx = x - lastX;
+        const dy = y - lastY;
+
+        // Resolve "MaybeSwipe" (Vertical drag vs Horizontal swipe)
+        if (mode === 'maybeSwipe') {
+            if (Math.abs(dx) > Math.abs(dy)) {
+                mode = 'swipe';
+            } else {
+                mode = 'shade'; // Changed mind, dragging shade up/down
+                activeCardIndex = -1;
+            }
+        }
+
+        // --- ACTION HANDLERS ---
+
+        if (mode === 'shade') {
+            // Drag Logic: Absolute tracking relative to start
+            // shadeY = originalPos + (currentY - startY)
+            const absoluteDelta = y - dragStartY;
+            shadeTarget = dragStartShadeY + absoluteDelta;
+            
+            // Constrain
+            if (shadeTarget < 0) shadeTarget = 0;
+            if (shadeTarget > phoneHeight) shadeTarget = phoneHeight;
+            
+            // Instant update for responsiveness (override physics)
+            shadeY = shadeTarget;
+            shadeVelocity = dy; // Transfer hand momentum
+        }
+
+        if (mode === 'swipe' && activeCardIndex !== -1) {
+            cards[activeCardIndex].x = x - activeCardStartX;
+            cards[activeCardIndex].vx = 0; // Stop internal physics while holding
+        }
+        
+        if (mode === 'scrollQS') {
+            qsScrollX += dx;
+            // Boundaries (Elastic)
+            if (qsScrollX > 50) qsScrollX = 50; 
+            if (qsScrollX < qsMaxScroll - 50) qsScrollX = qsMaxScroll - 50;
+            
+            // Add physics to items (The Jiggle)
+            // If we scroll Left, items drag Right
+            qsItems.forEach(item => {
+                item.x += dx * -0.5; // -0.5 is the lag factor
             });
         }
 
-        prevShadeY = shadeY;
-
-        requestAnimationFrame(updatePhysics);
-    }
-    
-    let prevShadeY = 0;
-
-
-    // --- Input Handling ---
-    const startDrag = (y) => {
-        isDragging = true;
-        startY = y;
-        // If closed, we start from 0. If open, we start from height.
-        const currentOffset = shadeOpen ? phoneHeight : 0;
-        startY -= currentOffset; 
-        document.getElementById('hint').style.opacity = '0';
+        lastX = x;
+        lastY = y;
     };
 
-    const moveDrag = (y) => {
-        if (!isDragging) return;
-        currentDragY = y - startY;
-        // Resistance at bottom
-        if (currentDragY > phoneHeight) currentDragY = phoneHeight + (currentDragY - phoneHeight) * 0.2;
-    };
-
-    const endDrag = () => {
+    const onEnd = () => {
         isDragging = false;
-        // Snap logic
-        if (shadeY > phoneHeight / 3) {
-            shadeOpen = true;
-        } else {
-            shadeOpen = false;
+
+        if (mode === 'shade') {
+            // Snap logic
+            if (shadeVelocity > 15 || shadeY > phoneHeight / 2) {
+                shadeTarget = phoneHeight; // Open
+            } else {
+                shadeTarget = 0; // Close
+            }
         }
+
+        if (mode === 'swipe' && activeCardIndex !== -1) {
+            const card = cards[activeCardIndex];
+            if (Math.abs(card.x) > CONFIG.swipeThreshold) {
+                // DELETE
+                deleteCard(activeCardIndex);
+            } else {
+                // Return to center (handled by update loop)
+            }
+            activeCardIndex = -1;
+        }
+        
+        if (mode === 'scrollQS') {
+            // Snap back if out of bounds
+            if (qsScrollX > 0) qsScrollX = 0;
+            if (qsScrollX < qsMaxScroll) qsScrollX = qsMaxScroll;
+        }
+        
+        mode = 'idle';
     };
 
-    // Touch
-    trigger.addEventListener('touchstart', e => startDrag(e.touches[0].clientY), {passive:false});
-    window.addEventListener('touchmove', e => moveDrag(e.touches[0].clientY), {passive:false});
-    window.addEventListener('touchend', endDrag);
+    // --- LOGIC: DELETE & FILL GAP ---
+    function deleteCard(index) {
+        const card = cards[index];
+        card.deleted = true;
+        
+        // Animate out
+        card.el.style.transition = "0.2s ease";
+        card.el.style.transform = `translate(${card.x > 0 ? 500 : -500}px, ${card.y}px)`;
+        card.el.style.opacity = '0';
+        
+        // Wait then remove from calculation to close gap
+        setTimeout(() => {
+            // Removing from array changes indices, so we just filter
+            // Ideally we keep it in array but mark hidden to preserve indices, 
+            // but filtering is cleaner for the "Next Target" loop.
+            cards = cards.filter(c => c !== card);
+            card.el.remove();
+            
+            // TRIGGER WOBBLE
+            // The remaining cards will suddenly realize their 'currentYTarget' 
+            // has decreased by 90px. The Spring physics in the loop 
+            // will automatically accelerate them upwards, overshoot, and wobble.
+        }, 200);
+    }
 
-    // Mouse
-    trigger.addEventListener('mousedown', e => startDrag(e.clientY));
-    window.addEventListener('mousemove', e => moveDrag(e.clientY));
-    window.addEventListener('mouseup', endDrag);
+    // Bind Events
+    window.addEventListener('mousedown', onStart);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
     
-    // Allow closing by dragging the bottom of the shade too
-    shade.addEventListener('mousedown', e => {
-        if(shadeOpen) startDrag(e.clientY);
-    });
-    shade.addEventListener('touchstart', e => {
-        if(shadeOpen) startDrag(e.touches[0].clientY);
-    }, {passive:false});
-
-
-    // Start
-    updatePhysics();
+    window.addEventListener('touchstart', onStart, {passive: false});
+    window.addEventListener('touchmove', (e) => { e.preventDefault(); onMove(e); }, {passive: false});
+    window.addEventListener('touchend', onEnd);
 
 </script>
 </body>
